@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎨 Museum Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+</head>
+<body>
+
+  <div class="admin-container">
+    <!-- ✅ SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1 class="logo">🎨 Museum Admin</h1>
+        <p class="tagline">Manage Your Collection</p>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" onclick="showSection('paintings', this)">
+          📋 Paintings
+        </button>
+        <button class="nav-btn" onclick="showSection('add-painting', this)">
+          ➕ Add Painting
+        </button>
+        <button class="nav-btn" onclick="window.location.href='analytics.html'">
+          📊 Analytics
+        </button>
+        <button class="nav-btn" onclick="showSection('settings', this)">
+          ⚙️ Settings
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status">
+          <span id="connection-status" class="status-indicator online">🟢 Online</span>
+          <p id="sync-status" class="sync-info">Last sync: now</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ✅ MAIN CONTENT -->
+    <main class="main-content">
+
+      <!-- ✅ HEADER -->
+      <header class="dashboard-header">
+        <h2 id="section-title">Paintings</h2>
+        <div class="header-actions">
+          <button class="btn btn-outline" onclick="exportPaintings()">📥 Export</button>
+          <button class="btn btn-outline" onclick="refreshData()">🔄 Refresh</button>
+          <span id="last-updated" class="timestamp">Updated just now</span>
+        </div>
+      </header>
+
+      <!-- ✅ PAINTINGS LIST SECTION -->
+      <section id="paintings" class="section active">
+        <div class="section-header">
+          <h2>All Paintings</h2>
+          <div class="search-box">
+            <input 
+              type="text" 
+              id="search-input" 
+              placeholder="🔍 Search paintings..." 
+              onkeyup="filterPaintings(this.value)"
+            >
+            <span class="painting-count" id="painting-count">0 paintings</span>
+          </div>
+        </div>
+        <div class="paintings-grid" id="paintingsList"></div>
+      </section>
+
+      <!-- ✅ ADD PAINTING SECTION -->
+      <section id="add-painting" class="section">
+        <h2>➕ Add New Painting</h2>
+        <div class="add-painting-container">
+          <form class="painting-form" id="paintingForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="paintingName">🖼️ Painting Name *</label>
+                <input type="text" id="paintingName" placeholder="e.g., The Starry Night" required>
+              </div>
+
+              <div class="form-group">
+                <label for="artistName">👤 Artist Name *</label>
+                <input type="text" id="artistName" placeholder="e.g., Vincent van Gogh" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="description">📝 Description *</label>
+              <textarea 
+                id="description" 
+                rows="6" 
+                placeholder="Enter painting description or click Generate..."
+                required
+              ></textarea>
+              <button 
+                type="button" 
+                class="btn btn-secondary" 
+                id="generateBtn"
+                onclick="generateDescription()"
+              >
+                ✨ Generate with AI
+              </button>
+            </div>
+
+            <div class="form-group">
+              <label for="painting-image">🖼️ Upload Painting Image *</label>
+              <div class="image-upload">
+                <input 
+                  type="file" 
+                  id="painting-image" 
+                  accept="image/*"
+                  required
+                >
+                <div class="upload-hint">
+                  <p>Click to select image or drag & drop</p>
+                  <small>Supported: JPG, PNG, WebP (max 2MB)</small>
+                </div>
+              </div>
+              <div id="image-preview-container" style="margin-top: 15px; display: none;">
+                <p><strong>Preview:</strong></p>
+                <img id="preview-img" src="" alt="Preview" style="max-width: 250px; height: auto; border-radius: 8px; border: 2px solid #ddd;">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-large">
+                ➕ Add Painting
+              </button>
+              <button type="reset" class="btn btn-outline">
+                Clear Form
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ✅ SETTINGS SECTION -->
+      <section id="settings" class="section">
+        <h2>⚙️ Settings</h2>
+        <div class="settings-container">
+          <div class="settings-group">
+            <h3>🗄️ Database</h3>
+            <div class="setting-item">
+              <label>API Endpoint:</label>
+              <input type="text" value="http://127.0.0.1:5000/api" readonly class="setting-input">
+            </div>
+            <button class="btn btn-outline" onclick="testConnection()">
+              🔗 Test Connection
+            </button>
+          </div>
+
+          <div class="settings-group">
+            <h3>🧹 Maintenance</h3>
+            <button class="btn btn-danger" onclick="clearCache()">
+              🗑️ Clear Local Cache
+            </button>
+            <button class="btn btn-outline" onclick="refreshData()">
+              🔄 Refresh All Data
+            </button>
+          </div>
+
+          <div class="settings-group">
+            <h3>📤 Data Export</h3>
+            <button class="btn btn-outline" onclick="exportAnalytics()">
+              📥 Export Analytics
+            </button>
+            <button class="btn btn-outline" onclick="exportAllPaintings()">
+              📥 Export All Paintings
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ✅ TOAST NOTIFICATIONS -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ✅ SCRIPTS -->
+  <script src="app.js"></script>
+
+</body>
+</html>
