@@ -372,14 +372,20 @@ body {
   min-height: 150px;
 }
 
+/* ============================================
+   IMAGE UPLOAD (FIXED - CLICK & DRAG DROP)
+   ============================================ */
+
 .image-upload {
-  padding: 30px;
+  position: relative;
+  padding: 40px;
   border: 2px dashed var(--border);
   border-radius: 8px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   background: rgba(212, 175, 55, 0.05);
+  overflow: hidden;
 }
 
 .image-upload:hover {
@@ -387,12 +393,22 @@ body {
   background: rgba(212, 175, 55, 0.1);
 }
 
+/* ✅ CRITICAL: Make file input cover entire zone - NOT display: none */
 .image-upload input[type="file"] {
-  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
 }
 
 .upload-hint {
   pointer-events: none;
+  position: relative;
+  z-index: 1;
 }
 
 .upload-hint p {
@@ -405,6 +421,19 @@ body {
 .upload-hint small {
   color: #888;
   font-size: 12px;
+}
+
+/* ✅ Highlight when dragging over */
+.image-upload.drag-over {
+  border-color: var(--primary);
+  background-color: rgba(212, 175, 55, 0.15);
+  border-width: 2px;
+  box-shadow: inset 0 0 20px rgba(212, 175, 55, 0.1);
+}
+
+.image-upload.drag-over p {
+  color: var(--primary);
+  font-weight: bold;
 }
 
 #image-preview-container {

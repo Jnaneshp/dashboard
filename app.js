@@ -34,41 +34,104 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Image preview
-  const imageInput = document.getElementById('painting-image');
-  if (imageInput) {
-    imageInput.addEventListener('change', handleImagePreview);
-  }
+  // Setup file upload zone
+  setupFileUploadZone();
   
   // Load paintings on start
   loadPaintings();
 });
 
-// ✅ HANDLE IMAGE PREVIEW
-function handleImagePreview(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+// ✅ SETUP FILE UPLOAD WITH DRAG-DROP
+function setupFileUploadZone() {
+  const imageUploadZone = document.getElementById('image-upload-zone') || document.querySelector('.image-upload');
+  const fileInput = document.getElementById('painting-image');
+  const previewContainer = document.getElementById('image-preview-container');
+  const previewImg = document.getElementById('preview-img');
 
-  // Validate size (max 2MB)
-  if (file.size > 2 * 1024 * 1024) {
-    alert('❌ Image too large (max 2MB)');
-    e.target.value = '';
+  if (!imageUploadZone || !fileInput) {
+    console.warn('⚠️ Image upload elements not found');
     return;
   }
 
-  // Show preview
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    const previewContainer = document.getElementById('image-preview');
-    const img = document.getElementById('preview-img');
-    if (img && previewContainer) {
-      img.src = event.target.result;
-      img.style.display = 'block';
+  // ✅ CLICK TO UPLOAD
+  fileInput.addEventListener('change', handleFileSelect);
+
+  // ✅ DRAG & DROP EVENTS
+  imageUploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    imageUploadZone.classList.add('drag-over');
+  });
+
+  imageUploadZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    imageUploadZone.classList.remove('drag-over');
+  });
+
+  imageUploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    imageUploadZone.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput.files = files;
+      handleFileSelect();
     }
-  };
-  reader.readAsDataURL(file);
+  });
+
+  // ✅ FILE SELECTION HANDLER
+  function handleFileSelect() {
+    const file = fileInput.files[0];
+    
+    if (!file) {
+      if (previewContainer) previewContainer.style.display = 'none';
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      showToast('❌ Only JPG, PNG, and WebP images are supported', 'error');
+      fileInput.value = '';
+      return;
+    }
+
+    // Validate file size (2MB max)
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      showToast('❌ Image size must be less than 2MB', 'error');
+      fileInput.value = '';
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (previewImg && previewContainer) {
+        previewImg.src = event.target.result;
+        previewContainer.style.display = 'block';
+        showToast(`✅ Image loaded: ${file.name}`, 'success');
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    console.log('✅ Image selected:', file.name);
+  }
+}
+
+// ✅ TOAST NOTIFICATION
+function showToast(message, type = 'info') {
+  const toastContainer = document.getElementById('toast-container');
+  if (!toastContainer) return;
   
-  console.log('✅ Image selected:', file.name);
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  toastContainer.appendChild(toast);
+  
+  setTimeout(() => toast.remove(), 3000);
 }
 
 // ✅ ADD PAINTING FUNCTION (WITH IMAGE SUPPORT)
@@ -84,12 +147,12 @@ async function addPainting() {
 
     // Validation
     if (!name || !artist || !description) {
-      alert('❌ Please fill all fields (name, artist, description)');
+      showToast('❌ Please fill all fields (name, artist, description)', 'error');
       return;
     }
 
     if (!imageFile) {
-      alert('❌ Please select an image');
+      showToast('❌ Please select an image', 'error');
       return;
     }
 
@@ -134,12 +197,12 @@ async function addPainting() {
     }
 
     if (data.success) {
-      alert('✅ Painting added successfully with image!');
+      showToast('✅ Painting added successfully with image!', 'success');
       document.getElementById('paintingForm').reset();
       
       // Clear image preview
-      const img = document.getElementById('preview-img');
-      if (img) img.style.display = 'none';
+      const previewContainer = document.getElementById('image-preview-container');
+      if (previewContainer) previewContainer.style.display = 'none';
       
       // Reload paintings list
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -148,11 +211,11 @@ async function addPainting() {
       // Switch to paintings view
       showSection('paintings');
     } else {
-      alert('❌ Error: ' + (data.error || 'Unknown error'));
+      showToast('❌ Error: ' + (data.error || 'Unknown error'), 'error');
     }
   } catch (err) {
     console.error('❌ Error:', err);
-    alert('❌ Error: ' + err.message);
+    showToast('❌ Error: ' + err.message, 'error');
     
     // Reset button
     const submitBtn = document.querySelector('#paintingForm button[type="submit"]');
@@ -170,7 +233,7 @@ async function generateDescription() {
     const artist = document.getElementById('artistName')?.value.trim() || '';
 
     if (!name || !artist) {
-      alert('❌ Please enter painting name and artist first');
+      showToast('❌ Please enter painting name and artist first', 'error');
       return;
     }
 
@@ -194,23 +257,23 @@ async function generateDescription() {
 
     if (genBtn) {
       genBtn.disabled = false;
-      genBtn.textContent = '✨ Generate with Gemini';
+      genBtn.textContent = '✨ Generate with AI';
     }
 
     if (data.success) {
       document.getElementById('description').value = data.description;
-      alert('✅ Description generated!');
+      showToast('✅ Description generated!', 'success');
     } else {
-      alert('❌ Error: ' + (data.error || 'Failed to generate'));
+      showToast('❌ Error: ' + (data.error || 'Failed to generate'), 'error');
     }
   } catch (err) {
     console.error('❌ Gemini Error:', err);
-    alert('❌ Error: ' + err.message);
+    showToast('❌ Error: ' + err.message, 'error');
     
     const genBtn = document.getElementById('generateBtn');
     if (genBtn) {
       genBtn.disabled = false;
-      genBtn.textContent = '✨ Generate with Gemini';
+      genBtn.textContent = '✨ Generate with AI';
     }
   }
 }
@@ -297,7 +360,7 @@ async function editPaintingModal(id, currentName, currentArtist) {
   if (newDescription === null) return;
 
   if (!newName || !newArtist || !newDescription) {
-    alert('❌ All fields required');
+    showToast('❌ All fields required', 'error');
     return;
   }
 
@@ -318,14 +381,14 @@ async function editPainting(id, name, artist, description) {
     const data = await response.json();
     
     if (data.success) {
-      alert('✅ Painting updated!');
+      showToast('✅ Painting updated!', 'success');
       loadPaintings();
     } else {
-      alert('❌ Error: ' + (data.error || 'Failed to update'));
+      showToast('❌ Error: ' + (data.error || 'Failed to update'), 'error');
     }
   } catch (err) {
     console.error('❌ Edit Error:', err);
-    alert('❌ Error: ' + err.message);
+    showToast('❌ Error: ' + err.message, 'error');
   }
 }
 
@@ -344,14 +407,14 @@ async function deletePainting(id, paintingName = 'Painting') {
     const data = await response.json();
     
     if (data.success) {
-      alert('✅ Painting deleted!');
+      showToast('✅ Painting deleted!', 'success');
       loadPaintings();
     } else {
-      alert('❌ Error: ' + (data.error || 'Failed to delete'));
+      showToast('❌ Error: ' + (data.error || 'Failed to delete'), 'error');
     }
   } catch (err) {
     console.error('❌ Delete Error:', err);
-    alert('❌ Error: ' + err.message);
+    showToast('❌ Error: ' + err.message, 'error');
   }
 }
 
@@ -359,7 +422,7 @@ async function deletePainting(id, paintingName = 'Painting') {
 function downloadQR(qrCode, paintingName) {
   try {
     if (!qrCode) {
-      alert('❌ QR code not available');
+      showToast('❌ QR code not available', 'error');
       return;
     }
 
@@ -370,7 +433,7 @@ function downloadQR(qrCode, paintingName) {
     console.log('✅ QR downloaded:', paintingName);
   } catch (err) {
     console.error('❌ Download Error:', err);
-    alert('❌ Error: ' + err.message);
+    showToast('❌ Error: ' + err.message, 'error');
   }
 }
 
@@ -424,7 +487,7 @@ async function loadAnalytics() {
     console.log('✅ Analytics displayed');
   } catch (err) {
     console.error('❌ Error loading analytics:', err);
-    alert('❌ Error loading analytics: ' + err.message);
+    showToast('❌ Error loading analytics: ' + err.message, 'error');
   }
 }
 
@@ -442,10 +505,10 @@ function exportPaintings() {
         link.href = url;
         link.download = `paintings_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
-        alert('✅ Paintings exported!');
+        showToast('✅ Paintings exported!', 'success');
       });
   } catch (err) {
-    alert('❌ Error exporting: ' + err.message);
+    showToast('❌ Error exporting: ' + err.message, 'error');
   }
 }
 
